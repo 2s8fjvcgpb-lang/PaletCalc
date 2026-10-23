@@ -1,2 +1,1 @@
-PaletCalc V23 - mejora de reutilizacion de huecos en palets anteriores.
-Sube los seis archivos descomprimidos a la raiz del repositorio GitHub, sustituyendo los anteriores.
+PaletCalc V24. Búsqueda acotada adicional para intentar eliminar palets pequeños mediante reasignación completa. Mantiene las vistas y validaciones de V23. No garantiza óptimo global.\n

@@ -227,6 +227,52 @@ function fillExistingPallets(plans,types,W,H,mw){
  for(const p of plans)validate(p,types,W,H);
  return plans;
 }
+// V24: búsqueda acotada de reasignación del palet más pequeño.
+// No modifica los planes originales salvo si consigue eliminarlo por completo.
+function eliminateSmallPallet(plans,types,W,H,mw,cap){
+ if(plans.length<2||plans.length>9||types.length>10)return plans;
+ const count=p=>types.map((_,i)=>p.placed.reduce((n,b)=>n+(b.id===i),0));
+ const originalTotal=plans.reduce((s,p)=>s+p.placed.length,0);
+ const donors=plans.map((p,i)=>({i,n:p.placed.length})).filter(x=>x.n<=14).sort((a,b)=>a.n-b.n).slice(0,2);
+ for(const donor of donors){
+  const recipients=plans.filter((_,i)=>i!==donor.i), inventories=recipients.map(count);
+  const boxes=plans[donor.i].placed.map(p=>p.id).sort((a,b)=>types[b].l*types[b].w*types[b].h-types[a].l*types[a].w*types[a].h);
+  const cache=new Map();let budget=52;
+  function rebuild(j,id){
+   const q=inventories[j].slice();q[id]++;
+   const key=j+':'+q.join(',');if(cache.has(key))return cache.get(key);
+   if(--budget<0)return null;
+   let best=null;
+   for(let seed=0;seed<2;seed++){
+    try{
+     const p=mixedPallet(types,W,H,mw,cap,q,83+seed*43+j*17+id*7);
+     if(p.placed.length===q.reduce((a,b)=>a+b,0)&&(!cap||p.height<=cap+EPS)&&(!mw||p.weight<=mw+EPS)){
+      validate(p,types,W,H);if(!best||p.height<best.height)best=p;
+     }
+    }catch(e){}
+   }
+   cache.set(key,best);return best;
+  }
+  function search(k,changed){
+   if(k===boxes.length)return changed.slice();
+   if(budget<=0)return null;
+   const id=boxes[k];
+   const order=recipients.map((p,j)=>j).sort((a,b)=>recipients[a].height-recipients[b].height);
+   for(const j of order){
+    const p=rebuild(j,id);if(!p)continue;
+    const old=recipients[j];inventories[j][id]++;recipients[j]=p;changed[j]=p;
+    const found=search(k+1,changed);if(found)return found;
+    inventories[j][id]--;recipients[j]=old;changed[j]=old;
+   }
+   return null;
+  }
+  const found=search(0,recipients.slice());
+  if(found&&found.reduce((s,p)=>s+p.placed.length,0)===originalTotal){
+   found.forEach(p=>validate(p,types,W,H));return found;
+  }
+ }
+ return plans;
+}
 function distribute(types,W,H,mw,cap,maxPallets,strategy){
  const fast=homogeneousPallets(types,W,H,mw,cap,maxPallets,strategy);if(fast)return fast;
  const remaining=types.map(t=>t.q),plans=[];
@@ -284,6 +330,7 @@ function distribute(types,W,H,mw,cap,maxPallets,strategy){
   selected.plans=fillExistingPallets(selected.plans,types,W,H,mw);
   selected.plans=rebalancePallets(selected.plans,types,W,H,mw,cap);
   selected.plans=fillExistingPallets(selected.plans,types,W,H,mw);
+  selected.plans=eliminateSmallPallet(selected.plans,types,W,H,mw,cap);
   return selected;
  }
  return original;
