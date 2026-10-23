@@ -1,1 +1,3 @@
-PaletCalc V24. Búsqueda acotada adicional para intentar eliminar palets pequeños mediante reasignación completa. Mantiene las vistas y validaciones de V23. No garantiza óptimo global.\n
+PaletCalc V24 — versión identificada correctamente.
+Incluye las mejoras experimentales de optimización acotada de V24.
+Subir los seis archivos descomprimidos a la raíz del repositorio GitHub.
