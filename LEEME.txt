@@ -1,3 +1,5 @@
 PaletCalc V24 — versión identificada correctamente.
 Incluye las mejoras experimentales de optimización acotada de V24.
 Subir los seis archivos descomprimidos a la raíz del repositorio GitHub.
+
+Pesos predeterminados orientativos: europeo 15 kg, americano 20 kg, medio europeo 10 kg. Se actualizan al cambiar de tipo; se pueden editar.
