@@ -1,0 +1,1 @@
+PaletCalc V22: corrige bloqueo de calculo de V21 retirando busqueda 3D de coste exponencial. Recupera motor estable V20, conserva vistas y funcionalidades previas. La optimizacion de huecos sigue siendo heuristica.

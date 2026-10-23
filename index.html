@@ -1,0 +1,385 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10263b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="PaletCalc"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png"><title>PaletCalc V22</title><style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#182c40;background:#f3f6fa}*{box-sizing:border-box}body{margin:0}header{background:#10263b;color:white;padding:22px 18px 18px}header h1{margin:0;font-size:25px}header small{color:#b6d7e9}main{max-width:940px;margin:auto;padding:14px;display:grid;gap:14px}.card{background:white;border-radius:15px;padding:16px;box-shadow:0 2px 12px #132c4310}h2{font-size:17px;margin:0 0 12px}label{font-size:12px;color:#476077;display:block;margin-bottom:4px}input,select{width:100%;border:1px solid #cbd8e2;border-radius:9px;padding:10px;font-size:16px;background:white;color:#10263b}input[type=number]{min-width:0}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.boxrow{border:1px solid #d8e2ea;border-radius:12px;padding:10px;margin-bottom:9px}.boxrow .fields{grid-template-columns:repeat(3,minmax(0,1fr))}.boxrow .name{grid-column:span 2}.actions{display:flex;gap:8px;flex-wrap:wrap}button{background:#176b9c;border:0;border-radius:10px;color:white;padding:11px 14px;font-weight:650;font-size:14px;cursor:pointer}button.secondary{background:#e7eff5;color:#23445c}button.danger{background:#fff1ef;color:#a23e34}button:disabled{opacity:.5}.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.metric{padding:12px;background:#eef5fa;border-radius:11px}.metric strong{display:block;font-size:22px;color:#0b537e}.metric span{font-size:12px;color:#476077}.notice{font-size:13px;color:#4a6174;line-height:1.5}.error{color:#ad3529}.good{color:#197149}canvas{width:100%;height:320px;display:block;touch-action:pan-y;background:linear-gradient(#f7fbff,#e8f0f5);border-radius:12px}#side2d{height:290px;background:linear-gradient(180deg,#f8fbff,#edf5fb)}#results h2{letter-spacing:-.35px}.metric{background:linear-gradient(145deg,#eaf4fb,#f5f9fc);border:1px solid #e0ebf3}.metric strong{color:#124d78}#frontBtn,#sideBtn{min-width:94px}table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:8px 5px;border-bottom:1px solid #e4edf3;text-align:left}th{color:#496174}#results{display:none}.pill{font-size:12px;background:#e6f3e8;color:#176536;border-radius:30px;padding:5px 10px}.layerbtn{padding:8px 11px}.layerbtn.active{background:#0c4e75}footer{padding:18px;text-align:center;font-size:12px;color:#60768a}@media(min-width:700px){.metrics{grid-template-columns:repeat(4,1fr)}canvas{height:420px}.boxrow .fields{grid-template-columns:2fr repeat(5,1fr)}.boxrow .name{grid-column:auto}}
+.shipment{margin:10px 0 18px}.shipstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}.shipstats>div{background:#e8f4f9;border:1px solid #c7e3ef;border-radius:12px;padding:12px}.shipstats b{display:block;font-size:21px;color:#0c577b}.shipstats small{font-size:12px;color:#49697a}.tablewrap{overflow-x:auto}.compareline{padding:9px 0;border-bottom:1px solid #dae6ee}@media print{header,section.card:not(#results),#palletTabs,#layers,.actions,#top,#side2d,#three,footer,#comparison{display:none!important}body{background:white}#results{display:block!important;box-shadow:none}.metric{break-inside:avoid}#shipment{display:block}main{display:block}#results h2:not(:first-child){display:none}}
+</style></head><body><header><h1>📦 PaletCalc </h1><small>Paletización y cálculo de transporte</small></header><main><section class="card"><h2>1. Configuración del palet</h2><div class="fields"><div><label>Tipo de palet</label><select id="pallet"><option value="eur">Europeo · 120 × 80 cm</option><option value="usa">Americano · 121,92 × 101,6 cm</option><option value="half">Medio europeo · 80 × 60 cm</option></select></div><div><label>Altura del palet (cm)</label><input id="palletHeight" type="number" min="0" step="0.1" value="14.4"></div><div><label>Peso máximo de mercancía (kg; 0 = sin límite)</label><input id="maxWeight" type="number" value="" min="0" step="1"></div><div><label>Altura máxima total por palet (cm; 0 = sin límite)</label><input id="maxHeight" type="number" min="0" step="0.1" value=""></div><div><label>Máximo de palets (0 = sin límite)</label><input id="maxPallets" type="number" min="0" step="1" value=""></div><input type="hidden" id="strategy" value="few"></div><p class="notice">Altura máxima inicial 180 cm (incluye el palet). Las cajas pueden girarse en las seis orientaciones. La altura total incluye la altura física configurable del palet.</p></section><section class="card"><h2>2. Cajas (cm y kg)</h2><div id="rows"></div><div class="actions"><button class="secondary" id="add">+ Añadir tipo de caja</button></div></section><section class="card"><div class="actions"><button id="calculate">Calcular distribución</button><button class="secondary" id="save">Guardar cajas</button><button class="secondary" id="load">Recuperar cajas</button><button class="secondary" id="pdf">Descargar informe PDF</button></div><div class="fields" style="margin-top:10px"><div><label>Nombre del proyecto</label><input id="projectName" placeholder="Ej. Envío Madrid"></div><div><label>Proyectos guardados</label><select id="savedProjects"><option value="">Selecciona un proyecto</option></select></div></div><div class="actions" style="margin-top:8px"><button class="secondary" id="saveProject">Guardar proyecto con nombre</button><button class="secondary" id="loadProject">Abrir proyecto</button></div><p id="status" class="notice" aria-live="polite">Prioridad: llenar cada palet antes de abrir el siguiente, dentro de los límites de altura y peso. El último recibe las cajas sobrantes. Resultado heurístico.</p></section><section class="card" id="results"><h2>3. Resultado <span class="pill" id="valid">Geometría verificada</span></h2><div class="metrics" id="metrics"></div><p id="summary" class="notice"></p><h2>Resumen del envío</h2><div id="shipment" class="shipment"></div><h2>Distribución por palet</h2><div class="actions" id="palletTabs"></div><h2>Vista superior de cada capa</h2><div class="actions" id="layers"></div><canvas id="top" aria-label="Plano de la capa"></canvas><h2 style="margin-top:18px">Vistas 2D exactas</h2><div class="actions"><button id="frontBtn" class="secondary">Frontal</button><button id="sideBtn" class="secondary">Lateral</button><button id="reset3d" class="secondary">Restablecer vista 3D</button></div><canvas id="side2d" aria-label="Vista frontal o lateral"></canvas><h2 style="margin-top:18px">Vista 3D (arrastra para girar)</h2><canvas id="three" aria-label="Vista tridimensional del palet"></canvas><div class="actions"><button class="secondary" id="csv">Exportar colocación CSV</button></div><h2 style="margin-top:18px">Detalle de capas</h2><div style="overflow:auto"><table><thead><tr><th>Capa</th><th>Inicio desde suelo</th><th>Altura capa</th><th>Altura final</th><th>Cajas</th><th>Cobertura</th></tr></thead><tbody id="layerTable"></tbody></table></div><p class="notice">Cada capa se construye con cajas de la misma altura y la siguiente descansa sobre una superficie superior uniforme. Esto garantiza apoyo geométrico completo, pero puede dejar huecos que otras estrategias aprovecharían. No se verifica resistencia del cartón, estabilidad dinámica ni cargas puntuales. El resultado es heurístico, no una garantía de óptimo global.</p></section></main><footer>PaletCalc V22 · cálculo local en el dispositivo · sin conexión tras la primera carga · Autor: Made Blanco</footer><script>
+'use strict';const $=id=>document.getElementById(id), EPS=1e-7;let result=null,allPallets=[],selectedPallet=0,selectedLayer=0,viewAngle=-.75,sideAxis="front";const colors=['#2485b7','#e18b36','#49a47d','#9a78bf','#d36b76','#56aab0','#b09b47','#607eaa'];
+function row(data={name:'',l:'',w:'',h:'',q:'',kg:''}){const div=document.createElement('div');div.className='boxrow';div.innerHTML=`<div class="fields"><div class="name"><label>Referencia</label><input data-k="name"></div><div><label>Largo</label><input data-k="l" type="number" min="0.01" step="any"></div><div><label>Ancho</label><input data-k="w" type="number" min="0.01" step="any"></div><div><label>Alto</label><input data-k="h" type="number" min="0.01" step="any"></div><div><label>Cantidad</label><input data-k="q" type="number" min="1" step="1"></div><div><label>Kg/caja</label><input data-k="kg" type="number" min="0" step="any"></div></div><button class="danger" style="margin-top:8px" type="button">Eliminar</button>`;for(const k of ['name','l','w','h','q','kg'])div.querySelector(`[data-k=${k}]`).value=data[k];div.querySelector('button').onclick=()=>div.remove();$('rows').appendChild(div)}
+function read(){let types=[...document.querySelectorAll('.boxrow')].map((r,i)=>{let o={id:i};for(const k of ['name','l','w','h','q','kg'])o[k]=r.querySelector(`[data-k=${k}]`).value.trim();for(const k of ['l','w','h','q','kg'])o[k]=Number(o[k]);return o});if(!types.length)throw Error('Añade al menos un tipo de caja.');for(const t of types){if(!t.name||![t.l,t.w,t.h,t.q,t.kg].every(Number.isFinite)||Math.min(t.l,t.w,t.h,t.q)<=0||t.kg<0||!Number.isInteger(t.q))throw Error('Revisa las medidas, cantidades y pesos.');}if(types.reduce((a,t)=>a+t.q,0)>350)throw Error('Máximo 350 cajas por cálculo para mantener el móvil fluido.');return types}
+function dims(){return $('pallet').value==='eur'?[120,80]:$('pallet').value==='half'?[80,60]:[121.92,101.6]}
+function orientations(t){let a=[[t.l,t.w,t.h],[t.w,t.l,t.h],[t.l,t.h,t.w],[t.h,t.l,t.w],[t.w,t.h,t.l],[t.h,t.w,t.l]];return a.filter((v,i)=>a.findIndex(x=>x.every((n,j)=>Math.abs(n-v[j])<EPS))===i)}
+function area(r){return r.w*r.h}
+function splitFree(free,used){let out=[];for(const r of free){if(used.x>=r.x+r.w-EPS||used.x+used.w<=r.x+EPS||used.y>=r.y+r.h-EPS||used.y+used.h<=r.y+EPS){out.push(r);continue}if(used.x>r.x+EPS)out.push({x:r.x,y:r.y,w:used.x-r.x,h:r.h});if(used.x+used.w<r.x+r.w-EPS)out.push({x:used.x+used.w,y:r.y,w:r.x+r.w-used.x-used.w,h:r.h});if(used.y>r.y+EPS)out.push({x:r.x,y:r.y,w:r.w,h:used.y-r.y});if(used.y+used.h<r.y+r.h-EPS)out.push({x:r.x,y:used.y+used.h,w:r.w,h:r.y+r.h-used.y-used.h})}out=out.filter(r=>r.w>EPS&&r.h>EPS);return out.filter((r,i)=>!out.some((s,j)=>i!==j&&s.x<=r.x+EPS&&s.y<=r.y+EPS&&s.x+s.w>=r.x+r.w-EPS&&s.y+s.h>=r.y+r.h-EPS&&(j<i||s.x<r.x-EPS||s.y<r.y-EPS||s.w>r.w+EPS||s.h>r.h+EPS)))}
+function packLayer(types,remaining,W,H,height,seed,weightLeft){let free=[{x:0,y:0,w:W,h:H}],placed=[],usedWeight=0;let rand=mulberry(seed);let choices=types.flatMap(t=>orientations(t).filter(o=>Math.abs(o[2]-height)<EPS).map(o=>({t,w:o[0],h:o[1],z:height})));let maxSteps=Math.min(350,remaining.reduce((a,b)=>a+b,0));for(let step=0;step<maxSteps;step++){let candidates=[];for(let c of choices){if(!remaining[c.t.id]||usedWeight+c.t.kg>weightLeft+EPS)continue;for(const r of free){if(c.w>r.w+EPS||c.h>r.h+EPS)continue;let waste=r.w*r.h-c.w*c.h;let score=c.w*c.h*1000 - waste*.05 - (r.x+r.y)*.002 +rand()*((seed%5)*20);candidates.push({c,r,score})}}if(!candidates.length)break;candidates.sort((a,b)=>b.score-a.score);let best=candidates[0],c=best.c,r=best.r;let p={id:c.t.id,name:c.t.name,x:r.x,y:r.y,z:0,w:c.w,d:c.h,h:height,kg:c.t.kg};placed.push(p);remaining[c.t.id]--;usedWeight+=c.t.kg;free=splitFree(free,{x:p.x,y:p.y,w:p.w,h:p.d})}return {height,placed,coverage:placed.reduce((a,p)=>a+p.w*p.d,0)/(W*H),weight:usedWeight}}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296}}
+function solve(types,W,H,maxWeight,trial){let rem=types.map(t=>t.q),layers=[],weightUsed=0,heights=[...new Set(types.flatMap(t=>orientations(t).map(o=>o[2])))].sort((a,b)=>a-b);let count=types.reduce((a,t)=>a+t.q,0);for(let iter=0;iter<count&&rem.some(n=>n>0);iter++){let possibilities=[];for(const h of heights){let tmp=rem.slice(),layer=packLayer(types,tmp,W,H,h,trial*1307+iter*29+Math.round(h*10),maxWeight?maxWeight-weightUsed:Infinity);if(!layer.placed.length)continue;let n=layer.placed.length;let volume=layer.placed.reduce((a,p)=>a+p.w*p.d*p.h,0);let projected=h/(n||1);let score=volume/h + n*2 - h*.07 + layer.coverage*200 + (trial%3===0? -projected*10:0);possibilities.push({layer,tmp,score})}if(!possibilities.length)break;possibilities.sort((a,b)=>b.score-a.score);let chosen=possibilities[0];rem=chosen.tmp;let z=layers.reduce((a,l)=>a+l.height,0);chosen.layer.placed.forEach(p=>p.z=z);layers.push(chosen.layer);weightUsed+=chosen.layer.weight}return {layers,rem,placed:layers.flatMap(l=>l.placed),height:layers.reduce((a,l)=>a+l.height,0),weight:weightUsed}}
+function validate(plan,types,W,H){let all=plan.placed;for(const p of all){if(p.x< -EPS||p.y< -EPS||p.z< -EPS||p.x+p.w>W+EPS||p.y+p.d>H+EPS)throw Error('Una caja sale del palet.');if(!orientations(types[p.id]).some(o=>Math.abs(o[0]-p.w)<EPS&&Math.abs(o[1]-p.d)<EPS&&Math.abs(o[2]-p.h)<EPS))throw Error('Orientación inválida.')}for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){let a=all[i],b=all[j];if(a.x<b.x+b.w-EPS&&b.x<a.x+a.w-EPS&&a.y<b.y+b.d-EPS&&b.y<a.y+a.d-EPS&&a.z<b.z+b.h-EPS&&b.z<a.z+a.h-EPS)throw Error('Solapamiento detectado.')}for(let k=1,z=0;k<plan.layers.length;k++){z+=plan.layers[k-1].height;for(const p of plan.layers[k].placed){if(Math.abs(p.z-z)>EPS)throw Error('Error de altura.');let support=plan.layers[k-1].placed.filter(q=>Math.abs(q.z+q.h-z)<EPS);let uncovered=[{x:p.x,y:p.y,w:p.w,h:p.d}];for(const q of support)uncovered=splitFree(uncovered,{x:q.x,y:q.y,w:q.w,h:q.d});if(uncovered.some(r=>r.w*r.h>1e-5))throw Error('Caja sin apoyo completo: la capa inferior tiene huecos.')}}return true}
+// Para asegurar apoyo completo, las capas siguientes sólo se permiten si la capa inferior cubre toda su huella.
+function buildSupported(types,W,H,maxWeight,seed){let plan=solve(types,W,H,maxWeight,seed);if(plan.layers.length>1){let layers=[],rem=types.map(t=>t.q),weight=0;for(let k=0;k<plan.layers.length;k++){let L=plan.layers[k];if(k>0){let below=layers[layers.length-1];let valid=L.placed.every(p=>{let uncovered=[{x:p.x,y:p.y,w:p.w,h:p.d}];for(const q of below.placed)uncovered=splitFree(uncovered,{x:q.x,y:q.y,w:q.w,h:q.d});return !uncovered.some(r=>r.w*r.h>1e-5)});if(!valid)break}layers.push(L);for(const p of L.placed)rem[p.id]--;weight+=L.weight}plan={layers,rem,placed:layers.flatMap(l=>l.placed),height:layers.reduce((a,l)=>a+l.height,0),weight}}
+validate(plan,types,W,H);return plan}
+// Estrategia segura: mantener la misma planta en todas las capas cuando se repite un tipo de caja.
+function exactGrid(types,W,H,maxWeight){if(types.length!==1)return null;let t=types[0],best=null;for(const [w,d,h] of orientations(t)){let nx=Math.floor((W+EPS)/w),ny=Math.floor((H+EPS)/d),per=nx*ny;if(!per)continue;let n=Math.min(t.q,per),count=maxWeight&&t.kg>0?Math.min(t.q,Math.floor(maxWeight/t.kg)):t.q;if(count<=0)continue;let layers=[],remaining=count,z=0;while(remaining>0){let placed=[];for(let y=0;y<ny&&placed.length<remaining;y++)for(let x=0;x<nx&&placed.length<remaining;x++)placed.push({id:0,name:t.name,x:x*w,y:y*d,z,w,d,h,kg:t.kg});layers.push({height:h,placed,coverage:placed.length*w*d/(W*H),weight:placed.length*t.kg});remaining-=placed.length;z+=h}let plan={layers,rem:[t.q-count],placed:layers.flatMap(l=>l.placed),height:z,weight:count*t.kg};if(!best||plan.placed.length>best.placed.length||plan.placed.length===best.placed.length&&plan.height<best.height)best=plan}return best}
+function optimize(types,W,H,maxWeight){let baseline=exactGrid(types,W,H,maxWeight),best=baseline;for(let seed=1;seed<=24;seed++){let p=buildSupported(types,W,H,maxWeight,seed);if(!best||p.placed.length>best.placed.length||p.placed.length===best.placed.length&&(p.height<best.height-EPS||Math.abs(p.height-best.height)<EPS&&p.layers[0].coverage>best.layers[0].coverage))best=p}if(!best)throw Error('No cabe ninguna caja con estas medidas o límite de peso.');validate(best,types,W,H);return best}
+function homogeneousPallets(types,W,H,mw,cap,maxPallets,strategy){
+ if(types.length!==1)return null;
+ const t=types[0],limit=maxPallets||t.q,opts=[];
+ for(const [w,d,h] of orientations(t)){
+  const nx=Math.floor((W+EPS)/w),ny=Math.floor((H+EPS)/d),per=nx*ny;
+  if(!per)continue;
+  const byHeight=cap?Math.floor((cap+EPS)/h):t.q;
+  const byWeight=mw&&t.kg?Math.floor((mw+EPS)/t.kg):t.q;
+  const maxPer=Math.min(t.q,per*byHeight,byWeight);
+  if(maxPer<=0)continue;
+  let nPallets=Math.ceil(t.q/maxPer);
+  if(strategy==='low'){
+   // Use the fewest layers per pallet among solutions with up to one extra pallet.
+   const baseline=Math.ceil(t.q/maxPer),tryN=Math.min(limit,baseline+1);
+   if(tryN>baseline){const need=Math.ceil(t.q/tryN);const layers=Math.ceil(need/per);if(layers*h<=cap+EPS||!cap)nPallets=tryN}
+  }
+  const count=Math.min(limit,nPallets),loads=[];
+  let rem=t.q;
+  for(let j=0;j<count;j++){
+   const num=strategy==='low'?Math.min(maxPer,Math.ceil(rem/(count-j))):Math.min(maxPer,rem);
+   if(num<=0)break;
+   const layers=[];let left=num,z=0;
+   while(left>0){const placed=[];for(let y=0;y<ny&&placed.length<left;y++)for(let x=0;x<nx&&placed.length<left;x++)placed.push({id:0,name:t.name,x:x*w,y:y*d,z,w,d,h,kg:t.kg});layers.push({height:h,placed,coverage:placed.length*w*d/(W*H),weight:placed.length*t.kg});left-=placed.length;z+=h}
+   loads.push({layers,placed:layers.flatMap(l=>l.placed),height:z,weight:num*t.kg,rem:[t.q-num]});rem-=num;
+  }
+  opts.push({plans:loads,remaining:[rem],nPallets:loads.length,maxHeight:Math.max(...loads.map(p=>p.height)),totalHeight:loads.reduce((a,p)=>a+p.height,0),placed:t.q-rem});
+ }
+ if(!opts.length)return {plans:[],remaining:[t.q]};
+ opts.sort((a,b)=>b.placed-a.placed||(strategy==='few'?a.nPallets-b.nPallets||a.totalHeight-b.totalHeight:a.maxHeight-b.maxHeight||a.nPallets-b.nPallets));
+ const best=opts[0];best.plans.forEach(p=>validate(p,types,W,H));return {plans:best.plans,remaining:best.remaining};
+}
+
+// V18: búsqueda alternativa para cargas mixtas. En cada capa se prueban todas
+// las referencias y orientaciones compatibles, no una referencia por separado.
+function mixedPallet(types,W,H,mw,cap,quantities,seed){
+ const rem=quantities.slice(),layers=[];let height=0,weight=0;
+ const heights=[...new Set(types.flatMap(t=>orientations(t).map(o=>o[2])))].sort((a,b)=>a-b);
+ for(let k=0;k<Math.min(80,quantities.reduce((a,b)=>a+b,0));k++){
+  let candidates=[];
+  for(const h of heights){
+   if(cap&&height+h>cap+EPS)continue;
+   for(let attempt=0;attempt<7;attempt++){
+    const tmp=rem.slice();
+    const layer=packLayer(types,tmp,W,H,h,seed*7919+k*317+attempt*31+Math.round(h*10),mw?mw-weight:Infinity);
+    if(!layer.placed.length)continue;
+    if(layers.length){
+     const below=layers[layers.length-1];
+     const supported=layer.placed.every(p=>{
+      let free=[{x:p.x,y:p.y,w:p.w,h:p.d}];
+      for(const q of below.placed)free=splitFree(free,{x:q.x,y:q.y,w:q.w,h:q.d});
+      return !free.some(r=>r.w*r.h>1e-5);
+     });
+     if(!supported)continue;
+    }
+    const volume=layer.placed.reduce((s,p)=>s+p.w*p.d*p.h,0);
+    const score=volume/(h||1)+layer.coverage*160+layer.placed.length*3-h*.12;
+    candidates.push({layer,tmp,score});
+   }
+  }
+  if(!candidates.length)break;
+  candidates.sort((a,b)=>b.score-a.score);
+  const chosen=candidates[0];rem.splice(0,rem.length,...chosen.tmp);
+  chosen.layer.placed.forEach(p=>p.z=height);
+  layers.push(chosen.layer);height+=chosen.layer.height;weight+=chosen.layer.weight;
+  if(!rem.some(Boolean))break;
+ }
+ const plan={layers,placed:layers.flatMap(l=>l.placed),height,weight,rem};
+ if(plan.placed.length)validate(plan,types,W,H);
+ return plan;
+}
+function mixedDistribute(types,W,H,mw,cap,maxPallets){
+ let remaining=types.map(t=>t.q),plans=[];
+ const limit=maxPallets||remaining.reduce((a,b)=>a+b,0);
+ for(let n=0;n<limit&&remaining.some(Boolean);n++){
+  let best=null;
+  for(let seed=1;seed<=16;seed++){
+   let p=mixedPallet(types,W,H,mw,cap,remaining,seed+n*23);
+   const volume=p.placed.reduce((s,b)=>s+b.w*b.d*b.h,0);
+   const bestVolume=best?.placed.reduce((s,b)=>s+b.w*b.d*b.h,0)||0;
+   if(!best||volume>bestVolume+EPS||(Math.abs(volume-bestVolume)<EPS&&p.height<best.height))best=p;
+  }
+  if(!best||!best.placed.length)break;
+  plans.push(best);
+  for(const p of best.placed)remaining[p.id]--;
+ }
+ return {plans,remaining};
+}
+// V19: compactar cada palet sin cambiar su inventario ni el número de palets.
+function compactPallet(plan,types,W,H,mw,cap){
+ const counts=types.map(()=>0);
+ for(const p of plan.placed)counts[p.id]++;
+ let best=plan;
+ // Intentos limitados para mantener la aplicación ágil en iPhone.
+ for(let seed=101;seed<=124;seed++){
+  let p;
+  try{p=mixedPallet(types,W,H,mw,Math.min(cap||Infinity,best.height),counts,seed)}
+  catch(e){continue}
+  if(p.placed.length!==plan.placed.length)continue;
+  if(p.height<best.height-EPS)best=p;
+ }
+ return best;
+}
+
+// V20: intercambio entre palets con aceptación estricta: misma carga completa,
+// geometría validada y ningún palet nuevo. Intentar vaciar el último palet.
+function rebalancePallets(plans,types,W,H,mw,cap){
+ if(plans.length<2||plans.length>18||types.length>12)return plans;
+ const counts=p=>types.map((_,i)=>p.placed.filter(b=>b.id===i).length);
+ const total=plans.reduce((a,p)=>a+p.placed.length,0);
+ let current=plans.slice();
+ const tryBuild=(qty,limit,seed)=>{
+  if(!qty.some(Boolean))return null;
+  let p;
+  try{p=mixedPallet(types,W,H,mw,limit,qty,seed)}catch(e){return null}
+  if(p.placed.length!==qty.reduce((a,b)=>a+b,0))return null;
+  if(limit&&p.height>limit+EPS)return null;
+  if(mw&&p.weight>mw+EPS)return null;
+  try{validate(p,types,W,H)}catch(e){return null}
+  return p;
+ };
+ // Primero buscar un palet completo menos mediante reasignación de referencias.
+ for(let pass=0;pass<2;pass++){
+  if(current.length<2)break;
+  let last=current[current.length-1],remaining=counts(last);
+  let trial=current.slice(0,-1),changes=0;
+  const ids=remaining.map((q,i)=>i).filter(i=>remaining[i]).sort((a,b)=>
+   types[b].l*types[b].w*types[b].h-types[a].l*types[a].w*types[a].h);
+  for(const id of ids){
+   while(remaining[id]>0&&changes<90){
+    let accepted=false;
+    for(let j=0;j<trial.length;j++){
+     const base=counts(trial[j]),test=base.slice();
+     test[id]++;
+     // Prueba el reempaquetado, sin aumentar la altura máxima autorizada.
+     let best=null;
+     for(let seed=1;seed<=3;seed++){
+      const p=tryBuild(test,cap,seed*47+j*11+changes);
+      if(p&&(!best||p.height<best.height))best=p;
+     }
+     if(best){trial[j]=best;remaining[id]--;changes++;accepted=true;break}
+    }
+    if(!accepted)break;
+   }
+  }
+  if(remaining.every(q=>q===0)&&trial.reduce((a,p)=>a+p.placed.length,0)===total){
+   current=trial;continue;
+  }
+  break; // No aplicar una redistribución parcial que empeore la solución.
+ }
+ return current;
+}
+
+function distribute(types,W,H,mw,cap,maxPallets,strategy){
+ const fast=homogeneousPallets(types,W,H,mw,cap,maxPallets,strategy);if(fast)return fast;
+ const remaining=types.map(t=>t.q),plans=[];
+ const total=remaining.reduce((a,b)=>a+b,0);
+ const maxN=maxPallets||total;
+ const targetCap=(strategy==='low'&&cap)?Math.max(0,cap*0.7):cap;
+ for(let palletIndex=0;palletIndex<maxN&&remaining.some(q=>q>0);palletIndex++){
+  const pending=types.map((t,i)=>({...t,q:remaining[i]}));
+  // Use the original optimizer unchanged when its solution fits.
+  let full=optimize(pending,W,H,mw), candidate=null;
+  if((!targetCap||full.height<=targetCap+EPS)&&full.placed.length){candidate=full}
+  else {
+   // Build a feasible pallet using successive bounded trials. Never accept an overheight result.
+   let chosen=types.map(()=>0);
+   let order=types.map((t,i)=>i).sort((a,b)=>types[b].l*types[b].w*types[b].h-types[a].l*types[a].w*types[a].h);
+   for(const id of order){
+    if(!remaining[id])continue;
+    let lo=0,hi=remaining[id],bestN=0,bestPlan=null;
+    while(lo<=hi){
+     const mid=Math.floor((lo+hi)/2);let trial=types.map((t,i)=>({...t,q:chosen[i]+(i===id?mid:0)}));
+     if(!trial.some(t=>t.q)){lo=mid+1;continue}
+     let p;try{p=optimize(trial,W,H,mw)}catch(e){p=null}
+     let wanted=trial.reduce((a,t)=>a+t.q,0);
+     if(p&&p.placed.length===wanted&&(!targetCap||p.height<=targetCap+EPS)){
+      bestN=mid;bestPlan=p;lo=mid+1
+     }else hi=mid-1;
+    }
+    chosen[id]+=bestN;if(bestPlan)candidate=bestPlan;
+   }
+   if(chosen.some(x=>x>0)){
+    const trial=types.map((t,i)=>({...t,q:chosen[i]}));
+    let merged=optimize(trial,W,H,mw);
+    if(merged.placed.length===chosen.reduce((a,b)=>a+b,0)&&(!targetCap||merged.height<=targetCap+EPS))candidate=merged;
+    else if(!candidate||candidate.height>targetCap+EPS)candidate=null;
+   }
+  }
+  if(!candidate||!candidate.placed.length)break;
+  validate(candidate,types,W,H);
+  if(cap&&candidate.height>cap+EPS)throw Error('El cálculo supera la altura máxima.');
+  for(const p of candidate.placed)remaining[p.id]--;
+  plans.push(candidate);
+  if(strategy==='low'&&plans.length<maxN&&remaining.some(q=>q>0)){
+   // In height-priority mode keep loads smaller when feasible (next pallet starts sooner).
+   // All accepted layouts still pass the same geometric validation.
+  }
+ }
+ const original={plans,remaining};
+ if(types.length>1){
+  const mixed=mixedDistribute(types,W,H,mw,cap,maxPallets);
+  const nOld=original.plans.reduce((s,p)=>s+p.placed.length,0);
+  const nNew=mixed.plans.reduce((s,p)=>s+p.placed.length,0);
+  let selected=(nNew>nOld||(nNew===nOld&&mixed.plans.length<original.plans.length))?mixed:original;
+  // No sacrificar cajas ni abrir palets adicionales solo para bajar la altura.
+  selected.plans=selected.plans.map(p=>compactPallet(p,types,W,H,mw,cap));
+  selected.plans=rebalancePallets(selected.plans,types,W,H,mw,cap);
+  return selected;
+ }
+ return original;
+}
+function choosePallet(i){selectedPallet=i;selectedLayer=0;result.plan=allPallets[i];render()}
+const fmt=(v,n=2)=>Number(v).toLocaleString('es-ES',{maximumFractionDigits:n});function render(){let {types,W,H,plan}=result,total=types.reduce((a,t)=>a+t.q,0),vol=plan.placed.reduce((a,p)=>a+p.w*p.d*p.h,0)/1e6,coverage=plan.layers[0]?.coverage||0;const metrics=[['Cajas colocadas',`${plan.placed.length}/${total}`],['Altura de cajas',`${fmt(plan.height)} cm`],['Altura del palet',`${fmt(result.palletHeight)} cm`],['Altura total',`${fmt(plan.height+result.palletHeight)} cm`],['Volumen de cajas',`${fmt(vol,3)} m³`],['Cobertura primera capa',`${fmt(coverage*100,2)} %`],['Peso mercancía',`${fmt(plan.weight)} kg`],['Capas',plan.layers.length],['Volumen exterior para transporte',`${fmt(W*H*(plan.height+result.palletHeight)/1e6,3)} m³`],['Medidas transporte',`${fmt(W)} × ${fmt(H)} × ${fmt(plan.height+result.palletHeight)} cm`],['Volumen envolvente',`${fmt(W*H*plan.height/1e6,3)} m³`],['Aprovechamiento volumen',`${fmt(plan.height?vol/(W*H*plan.height/1e6)*100:0,1)} %`]];metrics.unshift(['Palets utilizados',allPallets.length]);metrics.push(['Cajas del envío',`${allPallets.reduce((n,p)=>n+p.placed.length,0)}/${total}`]);$('shipment').innerHTML=`<div class="shipstats"><div><b>${allPallets.length}</b><small>Palets</small></div><div><b>${fmt(allPallets.reduce((a,p)=>a+p.weight,0))} kg</b><small>Peso mercancía</small></div><div><b>${fmt(allPallets.reduce((a,p)=>a+W*H*(p.height+result.palletHeight)/1e6,0),3)} m³</b><small>Volumen exterior total</small></div><div><b>${fmt(Math.max(...allPallets.map(p=>p.height+result.palletHeight)))} cm</b><small>Altura máxima</small></div></div><div class="tablewrap"><table><thead><tr><th>Palet</th><th>Cajas</th><th>Medidas transporte</th><th>Peso</th><th>Volumen</th></tr></thead><tbody>${allPallets.map((p,i)=>`<tr><td>${i+1}</td><td>${p.placed.length}</td><td>${fmt(W)} × ${fmt(H)} × ${fmt(p.height+result.palletHeight)} cm</td><td>${fmt(p.weight)} kg</td><td>${fmt(W*H*(p.height+result.palletHeight)/1e6,3)} m³</td></tr>`).join('')}</tbody></table></div>`;
+ $('palletTabs').innerHTML=allPallets.map((p,i)=>`<button class="${selectedPallet===i?'':'secondary'}" data-p="${i}">Palet ${i+1} · ${p.placed.length} cajas · ${fmt(p.height+result.palletHeight)} cm</button>`).join('');$('palletTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>choosePallet(Number(b.dataset.p)));$('metrics').innerHTML=metrics.map(([k,v])=>`<div class="metric"><strong>${v}</strong><span>${k}</span></div>`).join('');$('summary').textContent=`Superficie del palet: ${fmt(W*H/10000,4)} m². ${result.pending} cajas pendientes en el envío. Palet ${selectedPallet+1} de ${allPallets.length}. Referencia teórica por volumen: ${fmt(types.reduce((a,t)=>a+t.l*t.w*t.h*t.q,0)/(W*H))} cm (sin contar el palet). La optimización es heurística y se comprueba la geometría.`;$('layers').innerHTML=plan.layers.map((l,i)=>`<button class="layerbtn ${selectedLayer===i?'active':'secondary'}" data-i="${i}">Capa ${i+1}</button>`).join('');$('layers').querySelectorAll('button').forEach(b=>b.onclick=()=>{selectedLayer=Number(b.dataset.i);render()});$('layerTable').innerHTML=plan.layers.map((l,i)=>`<tr><td>${i+1}</td><td>${fmt(result.palletHeight+plan.layers.slice(0,i).reduce((a,x)=>a+x.height,0))} cm</td><td>${fmt(l.height)} cm</td><td>${fmt(result.palletHeight+plan.layers.slice(0,i+1).reduce((a,x)=>a+x.height,0))} cm</td><td>${l.placed.length}</td><td>${fmt(l.coverage*100,2)} %</td></tr>`).join('');$('results').style.display='block';requestAnimationFrame(()=>{drawTop();drawSide2D();try{draw3D()}catch(err){console.error('3D',err);$('three').style.display='none'}});try{/* deferred 3D */}catch(err){console.error('3D',err);$('three').style.display='none';$('reset3d').insertAdjacentText('afterend',' Vista 3D no disponible; utiliza las vistas 2D.')}}
+function canvasPrep(c){let dpr=Math.min(window.devicePixelRatio||1,2),r=c.getBoundingClientRect();c.width=Math.round(r.width*dpr);c.height=Math.round(r.height*dpr);let ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w:r.width,h:r.height}}
+function drawTop(){if(!result)return;let {ctx,w,h}=canvasPrep($('top')), {W,H,plan,types}=result;let scale=Math.min((w-50)/W,(h-55)/H),x0=(w-W*scale)/2,y0=(h-H*scale)/2;ctx.fillStyle='#c8a178';ctx.fillRect(x0,y0,W*scale,H*scale);ctx.strokeStyle='#684d32';ctx.lineWidth=2;ctx.strokeRect(x0,y0,W*scale,H*scale);for(const p of plan.layers[selectedLayer].placed){ctx.fillStyle=colors[p.id%colors.length];ctx.fillRect(x0+p.x*scale,y0+p.y*scale,p.w*scale,p.d*scale);ctx.strokeStyle='white';ctx.lineWidth=1;ctx.strokeRect(x0+p.x*scale,y0+p.y*scale,p.w*scale,p.d*scale);if(p.w*scale>35&&p.d*scale>20){ctx.fillStyle='white';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText(String(p.id+1),x0+(p.x+p.w/2)*scale,y0+(p.y+p.d/2)*scale+4)}}ctx.fillStyle='#29435a';ctx.font='12px system-ui';ctx.textAlign='center';ctx.fillText(`${fmt(W)} cm`,w/2,y0+H*scale+22);ctx.save();ctx.translate(x0-12,h/2);ctx.rotate(-Math.PI/2);ctx.fillText(`${fmt(H)} cm`,0,0);ctx.restore()}
+function drawSide2D(){
+ if(!result)return;
+ const {ctx,w,h}=canvasPrep($('side2d')),{W,H,plan,palletHeight}=result;
+ const horizontal=sideAxis==='front'?W:H,fullHeight=plan.height+palletHeight;
+ const left=22,right=90,topPad=48,bottom=38;
+ const scale=Math.min((w-left-right)/horizontal,(h-topPad-bottom)/Math.max(fullHeight,1));
+ const ox=left+Math.max(0,(w-left-right-horizontal*scale)/2),ground=h-bottom;
+ const top=ground-fullHeight*scale,woodTop=ground-palletHeight*scale;
+ ctx.clearRect(0,0,w,h);
+ // Faint architectural grid and ground line.
+ ctx.strokeStyle='#e1eaf1';ctx.lineWidth=1;
+ for(let y=ground;y>=30;y-=28){ctx.beginPath();ctx.moveTo(12,y);ctx.lineTo(w-12,y);ctx.stroke()}
+ ctx.strokeStyle='#a4b6c6';ctx.beginPath();ctx.moveTo(10,ground+1);ctx.lineTo(w-10,ground+1);ctx.stroke();
+ // Solid wooden pallet with planks, fork entries and a visible deck.
+ ctx.fillStyle='#bb8855';ctx.fillRect(ox,woodTop,horizontal*scale,palletHeight*scale);
+ ctx.fillStyle='#d8ab72';ctx.fillRect(ox,woodTop,horizontal*scale,Math.max(3,palletHeight*scale*.18));
+ ctx.strokeStyle='#855a35';ctx.lineWidth=1;ctx.strokeRect(ox,woodTop,horizontal*scale,palletHeight*scale);
+ for(let i=1;i<6;i++){let xx=ox+i*horizontal*scale/6;ctx.beginPath();ctx.moveTo(xx,woodTop);ctx.lineTo(xx,woodTop+Math.max(3,palletHeight*scale*.18));ctx.stroke()}
+ if(palletHeight*scale>13){for(let i=1;i<=2;i++){let xx=ox+(i*horizontal/3-horizontal*.10)*scale;ctx.fillStyle='#6b4b31';ctx.fillRect(xx,ground-palletHeight*scale*.60,horizontal*scale*.20,palletHeight*scale*.44)}}
+ // Identical source coordinates for front and side elevations.
+ const boxes=plan.placed.slice().sort((a,b)=>sideAxis==='front'?b.y-a.y:b.x-a.x);
+ for(const p of boxes){const a=sideAxis==='front'?p.x:p.y,wide=sideAxis==='front'?p.w:p.d;
+  const xx=ox+a*scale, yy=ground-(p.z+p.h+palletHeight)*scale, ww=wide*scale,hh=p.h*scale;
+  ctx.fillStyle=colors[p.id%colors.length];ctx.fillRect(xx,yy,ww,hh);
+  ctx.strokeStyle='#174966';ctx.lineWidth=.85;ctx.strokeRect(xx+.35,yy+.35,Math.max(0,ww-.7),Math.max(0,hh-.7));
+  if(ww>18&&hh>13){ctx.strokeStyle='#ffffff55';ctx.beginPath();ctx.moveTo(xx+2,yy+2);ctx.lineTo(xx+ww-2,yy+2);ctx.stroke()}
+ }
+ function dim(x1,y1,x2,y2,label,vertical=false){
+  ctx.strokeStyle='#c3324b';ctx.fillStyle='#c3324b';ctx.lineWidth=1.7;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const arr=(x,y,ang)=>{ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-7*Math.cos(ang-.42),y-7*Math.sin(ang-.42));ctx.lineTo(x-7*Math.cos(ang+.42),y-7*Math.sin(ang+.42));ctx.closePath();ctx.fill()};
+  arr(x1,y1,Math.atan2(y1-y2,x1-x2));arr(x2,y2,Math.atan2(y2-y1,x2-x1));
+  ctx.font='bold 12px system-ui';ctx.textAlign='center';
+  if(vertical){let tx=x1+25,ty=(y1+y2)/2;ctx.save();ctx.translate(tx,ty);ctx.rotate(-Math.PI/2);ctx.fillText(label,0,0);ctx.restore()}
+  else ctx.fillText(label,(x1+x2)/2,y1-7);
+ }
+ // Height dimension, with readable label beside its own arrow.
+ const dx=Math.min(w-64,ox+horizontal*scale+13);
+ ctx.strokeStyle='#c3324b';ctx.beginPath();ctx.moveTo(ox+horizontal*scale+3,top);ctx.lineTo(dx+5,top);ctx.moveTo(ox+horizontal*scale+3,ground);ctx.lineTo(dx+5,ground);ctx.stroke();
+ dim(dx,top,dx,ground,`${fmt(fullHeight)} cm`,true);
+ // Horizontal dimension directly under the pallet.
+ dim(ox,ground+21,ox+horizontal*scale,ground+21,`${fmt(horizontal)} cm`);
+ ctx.fillStyle='#1b4666';ctx.textAlign='left';ctx.font='bold 13px system-ui';ctx.fillText(sideAxis==='front'?'ALZADO FRONTAL':'ALZADO LATERAL',15,22);
+ ctx.font='11px system-ui';ctx.fillStyle='#526e84';ctx.fillText(`Palet ${fmt(palletHeight)} cm · carga ${fmt(plan.height)} cm`,15,38);
+}
+function draw3D(){
+ if(!result)return;
+ const {ctx,w,h}=canvasPrep($('three')),{W,H,plan,palletHeight}=result;
+ const ca=Math.cos(viewAngle),sa=Math.sin(viewAngle),height=plan.height+palletHeight;
+ const scale=Math.min(w/(W+H)*1.22,h/(height+(W+H)*.5)*1.18);
+ const pxRatio=ctx.canvas.width/w,pyRatio=ctx.canvas.height/h;
+ const pw=ctx.canvas.width,phh=ctx.canvas.height;
+ // Camera-space depth buffer. The same geometry is used at every rotation angle.
+ const zbuf=new Float32Array(pw*phh);zbuf.fill(-Infinity);
+ const rgba=new Uint8ClampedArray(pw*phh*4);
+ for(let i=3;i<rgba.length;i+=4)rgba[i]=0;
+ function vertex(x,y,z){let xx=x-W/2,yy=y-H/2,near=xx*sa+yy*ca;
+  return {x:(w/2+(xx*ca-yy*sa)*scale)*pxRatio,y:(h*.78+near*scale*.43-z*scale*.76)*pyRatio,depth:near*.76+z*.43};}
+ function rgb(hex){if(hex.startsWith('#'))return [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));let m=hex.match(/\d+/g);return m?m.slice(0,3).map(Number):[50,130,180]}
+ function triangle(a,b,c,col){
+  const det=(b.y-a.y)*(c.x-a.x)-(b.x-a.x)*(c.y-a.y);if(Math.abs(det)<1e-7)return;
+  const minx=Math.max(0,Math.floor(Math.min(a.x,b.x,c.x))),maxx=Math.min(pw-1,Math.ceil(Math.max(a.x,b.x,c.x)));
+  const miny=Math.max(0,Math.floor(Math.min(a.y,b.y,c.y))),maxy=Math.min(phh-1,Math.ceil(Math.max(a.y,b.y,c.y)));
+  for(let y=miny;y<=maxy;y++)for(let x=minx;x<=maxx;x++){
+   const qx=x+.5,qy=y+.5;
+   const u=((qy-a.y)*(c.x-a.x)-(qx-a.x)*(c.y-a.y))/det;
+   const v=((b.y-a.y)*(qx-a.x)-(b.x-a.x)*(qy-a.y))/det;
+   if(u<-.00001||v<-.00001||u+v>1.00001)continue;
+   const depth=a.depth*(1-u-v)+b.depth*u+c.depth*v,idx=y*pw+x;
+   if(depth>zbuf[idx]){zbuf[idx]=depth;let j=idx*4;rgba[j]=col[0];rgba[j+1]=col[1];rgba[j+2]=col[2];rgba[j+3]=255;}
+  }
+ }
+ const outlines=[];
+ function face(points,color){let vs=points.map(p=>vertex(...p)),col=rgb(color);triangle(vs[0],vs[1],vs[2],col);triangle(vs[0],vs[2],vs[3],col);outlines.push(vs)}
+ function block(x,y,z,ww,dd,hh,base,wood=false){let X=x+ww,Y=y+dd,Z=z+hh;
+  face([[x,y,Z],[X,y,Z],[X,Y,Z],[x,Y,Z]],wood?'#cba374':base);
+  face([[X,y,z],[X,Y,z],[X,Y,Z],[X,y,Z]],wood?'#8d643d':shade(base,-32));
+  face([[x,Y,z],[x,y,z],[x,y,Z],[x,Y,Z]],wood?'#8d643d':shade(base,-32));
+  face([[x,Y,z],[X,Y,z],[X,Y,Z],[x,Y,Z]],wood?'#a5784c':shade(base,-18));
+  face([[X,y,z],[x,y,z],[x,y,Z],[X,y,Z]],wood?'#a5784c':shade(base,-18));
+ }
+ const ph=palletHeight,deck=Math.min(2.3,ph*.18),foot=Math.max(0,ph-deck*2);
+ if(ph>0){
+  for(let k=0;k<3;k++){let yy=k*(H-12)/2;block(0,yy,0,W,12,deck,'#b88955',true)}
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++)block(i*(W-19)/2,j*(H-14)/2,deck,19,14,foot,'#b88955',true);
+  for(let k=0;k<7;k++)block(0,k*H/7,ph-deck,W,H/7-.65,deck,'#b88955',true);
+ }
+ for(const p of plan.placed)block(p.x,p.y,p.z+ph,p.w,p.d,p.h,colors[p.id%colors.length]);
+ ctx.putImageData(new ImageData(rgba,pw,phh),0,0);
+ // Draw only visible edges, tested against the same depth buffer.
+ ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='rgba(25,48,63,.7)';
+ for(const vs of outlines){for(let i=0;i<4;i++){
+  let a=vs[i],b=vs[(i+1)%4],n=Math.ceil(Math.hypot(b.x-a.x,b.y-a.y));
+  for(let j=0;j<=n;j++){let t=j/Math.max(1,n),x=Math.round(a.x+(b.x-a.x)*t),y=Math.round(a.y+(b.y-a.y)*t);
+   if(x<0||y<0||x>=pw||y>=phh)continue;let depth=a.depth+(b.depth-a.depth)*t;
+   if(depth>=zbuf[y*pw+x]-.9)ctx.fillRect(x,y,1,1);
+  }
+ }}ctx.restore();
+}
+function shade(hex,delta){let a=hex.slice(1).match(/../g).map(v=>Math.max(0,Math.min(255,parseInt(v,16)+delta)));return `rgb(${a.join(',')})`}
+
+function downloadPdfReport(){
+ const clean=t=>String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7e]/g,' ');
+ const lines=['PALETCALC - INFORME DE TRANSPORTE','Autor: Made Blanco','',
+ 'Palets utilizados: '+allPallets.length,
+ 'Cajas del envio: '+result.types.reduce((a,t)=>a+t.q,0),
+ 'Altura del palet: '+fmt(result.palletHeight)+' cm',
+ 'Altura maxima total: '+fmt(Math.max(...allPallets.map(p=>p.height+result.palletHeight)))+' cm',
+ 'Cajas pendientes: '+result.pending,'',
+ 'DETALLE POR PALET',''];
+ allPallets.forEach((p,i)=>{
+  const kg=p.placed.reduce((a,b)=>a+(Number(b.kg)||0),0);
+  lines.push('Palet '+(i+1)+' | '+p.placed.length+' cajas | '+fmt(result.W)+' x '+fmt(result.H)+' x '+fmt(p.height+result.palletHeight)+' cm | '+fmt(kg)+' kg');
+ });
+ lines.push('','Medidas exteriores incluyen la altura del palet.','Distribucion heuristica. Comprobar estabilidad y resistencia.');
+ const pages=[];for(let i=0;i<lines.length;i+=44)pages.push(lines.slice(i,i+44));
+ const objects=[];const add=o=>(objects.push(o),objects.length);
+ const catalog=add('');const pagesObj=add('');const font=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');const pageIds=[];
+ pages.forEach((rows,pi)=>{
+  const content='BT /F1 10 Tf 42 800 Td 14 TL '+rows.map((r,i)=>(i?'T* ':'')+'('+clean(r).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')+') Tj').join(' ')+' ET';
+  const stream=add('<< /Length '+new TextEncoder().encode(content).length+' >>\nstream\n'+content+'\nendstream');
+  pageIds.push(add('<< /Type /Page /Parent '+pagesObj+' 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 '+font+' 0 R >> >> /Contents '+stream+' 0 R >>'));
+ });
+ objects[catalog-1]='<< /Type /Catalog /Pages '+pagesObj+' 0 R >>';
+ objects[pagesObj-1]='<< /Type /Pages /Kids ['+pageIds.map(i=>i+' 0 R').join(' ')+'] /Count '+pageIds.length+' >>';
+ let pdf='%PDF-1.4\n', offsets=[0];objects.forEach((obj,i)=>{offsets.push(new TextEncoder().encode(pdf).length);pdf+=(i+1)+' 0 obj\n'+obj+'\nendobj\n'});
+ const xref=new TextEncoder().encode(pdf).length;
+ pdf+='xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n'+offsets.slice(1).map(n=>String(n).padStart(10,'0')+' 00000 n \n').join('');
+ pdf+='trailer\n<< /Size '+(objects.length+1)+' /Root '+catalog+' 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+ const blob=new Blob([pdf],{type:'application/pdf'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='PaletCalc_Informe.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+ $('status').textContent='Informe PDF generado. Comprueba Descargas o Archivos.';
+}
+
+function calculate(){try{$('status').textContent='Calculando…';let types=read(),[W,H]=dims(),mw=Number($('maxWeight').value),ph=Number($('palletHeight').value),mh=Number($('maxHeight').value),mp=Number($('maxPallets').value);
+ if(![mw,ph,mh,mp].every(Number.isFinite)||Math.min(mw,ph,mh,mp)<0||!Number.isInteger(mp))throw Error('Revisa los límites de peso, altura y número de palets.');
+ if(mh>0&&mh<=ph)throw Error('La altura máxima debe superar la altura del palet.');
+ setTimeout(()=>{try{let d=distribute(types,W,H,mw,mh?mh-ph:0,mp,$('strategy').value);if(!d.plans.length)throw Error('Ninguna caja cabe con los límites elegidos. Prueba más altura o peso.');allPallets=d.plans;selectedPallet=0;selectedLayer=0;result={types,W,H,plan:allPallets[0],palletHeight:ph,pending:d.remaining.reduce((a,b)=>a+b,0)};render();$('status').innerHTML='<span class="good">✓ '+allPallets.length+' palet(s) calculados. '+result.pending+' cajas pendientes.</span>'}catch(e){$('status').innerHTML='<span class="error">'+e.message+'</span>'}},30)
+ }catch(e){$('status').innerHTML='<span class="error">'+e.message+'</span>'}}
+$('add').onclick=()=>row({name:'',l:'',w:'',h:'',q:'',kg:''});$('pallet').addEventListener('change',()=>{$('palletHeight').value=$('pallet').value==='eur'?'14.4':'14.4'});$('calculate').onclick=calculate;$('save').onclick=()=>{try{localStorage.setItem('paletcalc_v13',JSON.stringify({types:read(),pallet:$('pallet').value,maxWeight:$('maxWeight').value,palletHeight:$('palletHeight').value,maxHeight:$('maxHeight').value,maxPallets:$('maxPallets').value,strategy:$('strategy').value}));$('status').textContent='Cajas guardadas en este dispositivo.'}catch(e){$('status').textContent=e.message}};$('load').onclick=()=>{let s=localStorage.getItem('paletcalc_v13');if(!s){$('status').textContent='No hay datos guardados.';return}let o=JSON.parse(s);$('rows').innerHTML='';o.types.forEach(row);$('pallet').value=o.pallet;$('maxWeight').value=o.maxWeight;$('palletHeight').value=o.palletHeight??'14.4';$('maxHeight').value=o.maxHeight??180;$('maxPallets').value=o.maxPallets??0;$('strategy').value='few';$('status').textContent='Datos recuperados.'};$('pdf').onclick=()=>{if(!result){$('status').textContent='Calcula primero el envío.';return}downloadPdfReport()};
+ const projectKey='paletcalc_projects_v13';
+ function projectData(){return {types:read(),pallet:$('pallet').value,maxWeight:$('maxWeight').value,palletHeight:$('palletHeight').value,maxHeight:$('maxHeight').value,maxPallets:$('maxPallets').value,strategy:$('strategy').value}}
+ function applyProject(o){$('rows').innerHTML='';o.types.forEach(row);$('pallet').value=o.pallet;$('maxWeight').value=o.maxWeight;$('palletHeight').value=o.palletHeight??14.4;$('maxHeight').value=o.maxHeight??180;$('maxPallets').value=o.maxPallets??0;$('strategy').value='few';}
+ function refreshProjects(){let all=JSON.parse(localStorage.getItem(projectKey)||'{}');$('savedProjects').innerHTML='<option value="">Selecciona un proyecto</option>'+Object.keys(all).sort().map(n=>`<option value="${n.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}">${n.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</option>`).join('')}
+ $('saveProject').onclick=()=>{try{let n=$('projectName').value.trim();if(!n)throw Error('Escribe un nombre de proyecto.');let all=JSON.parse(localStorage.getItem(projectKey)||'{}');all[n]=projectData();localStorage.setItem(projectKey,JSON.stringify(all));refreshProjects();$('savedProjects').value=n;$('status').textContent='Proyecto «'+n+'» guardado en este iPhone.'}catch(e){$('status').textContent=e.message}};
+ $('loadProject').onclick=()=>{try{let n=$('savedProjects').value,all=JSON.parse(localStorage.getItem(projectKey)||'{}');if(!all[n])throw Error('Selecciona un proyecto guardado.');applyProject(all[n]);$('projectName').value=n;$('status').textContent='Proyecto recuperado. Pulsa Calcular distribución.'}catch(e){$('status').textContent=e.message}};
+ refreshProjects();
+ $('csv').onclick=()=>{if(!result)return;let a=['palet;capa;referencia;x_cm;y_cm;z_cm;largo_cm;ancho_cm;alto_cm;peso_kg'];allPallets.forEach((pl,j)=>pl.layers.forEach((l,i)=>l.placed.forEach(p=>a.push([j+1,i+1,p.name,p.x,p.y,p.z,p.w,p.d,p.h,p.kg].join(';')))));let blob=new Blob(['\ufeff'+a.join('\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='PaletCalc_colocacion.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),2000)};let startX=null;$('three').addEventListener('pointerdown',e=>{startX=e.clientX;$('three').setPointerCapture(e.pointerId)});$('three').addEventListener('pointermove',e=>{if(startX!==null){viewAngle+=(e.clientX-startX)*.012;startX=e.clientX;draw3D()}});$('three').addEventListener('pointerup',()=>startX=null);$('frontBtn').onclick=()=>{sideAxis='front';drawSide2D()};$('sideBtn').onclick=()=>{sideAxis='side';drawSide2D()};$('reset3d').onclick=()=>{viewAngle=-.75;draw3D()};window.addEventListener('resize',()=>{if(result){drawTop();drawSide2D();draw3D()}});row({name:'',l:'',w:'',h:'',q:'',kg:''});if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script></body></html>
